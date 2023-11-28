@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS instances (
   instance_type TEXT,
   availability_zone TEXT,
   state TEXT,
-  cluster_id TEXT REFERENCES clusters(id)
+  cluster_id TEXT REFERENCES clusters(id),
+  update_flag BOOLEAN
   -- TODO: ADD tags
 );
 
@@ -56,3 +57,17 @@ CREATE TABLE IF NOT EXISTS tags (
   instance_id TEXT REFERENCES instances(id),
   PRIMARY KEY (key, instance_id)
 );
+
+
+CREATE OR REPLACE FUNCTION update_flag_func()
+RETURNS trigger AS
+$BODY$
+  BEGIN
+    new.update_flag = false;
+    return new;
+  END;
+$BODY$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER update_flag_trigger
+BEFORE INSERT on instances
+FOR EACH ROW EXECUTE PROCEDURE update_flag_func();

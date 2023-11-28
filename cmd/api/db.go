@@ -72,7 +72,8 @@ const (
 		instance_type,
 		availability_zone,
 		state,
-		cluster_id
+		cluster_id,
+		update_flag
 	) VALUES (
 		:id,
 		:name,
@@ -80,14 +81,16 @@ const (
 		:instance_type,
 		:availability_zone,
 		:state,
-		:cluster_id
+		:cluster_id,
+		true
 	) ON CONFLICT (id) DO UPDATE SET
 		name = EXCLUDED.name,
 		provider = EXCLUDED.provider,
 		instance_type = EXCLUDED.instance_type,
 		availability_zone = EXCLUDED.availability_zone,
 		state = EXCLUDED.state,
-		cluster_id = EXCLUDED.cluster_id
+		cluster_id = EXCLUDED.cluster_id,
+		update_flag = true
 	`
 
 	// InsertClustersQuery inserts into a new instance in its table
