@@ -39,8 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Go Unit Tests
-        run:
-          make go-test
+        run: |
+          echo $PWD; make go-test
 
       - name: Run Go Test Coverage
         run: |
