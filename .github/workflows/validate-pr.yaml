@@ -4,9 +4,15 @@ on:
   pull_request:
 
 jobs:
-  tests:
+  golangci:
+    name: lint
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Extract Go Version from go.mod
         id: go_version
         run: echo "GO_VERSION=$(awk '/^go /{print $2}' go.mod)" >> $GITHUB_ENV
@@ -29,7 +35,13 @@ jobs:
         with:
           version: v1.64.5
 
-      - name: Run Go Tests
-        uses: actions/setup-go@v5
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Go Unit Tests
         run:
-          make tests
+          make go-test
+
+      - name: Run Go Test Coverage
+        run:
+          make go-cover | grep -v -e "^ok .*$" | tee /tmp/missing.txt | awk 'BEGIN { c=0 } { print; c++ } END { print "There are " c " packages without 100% test coverage"; exit (c > 0) ? 1 : 0 }'
