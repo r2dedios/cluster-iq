@@ -59,7 +59,4 @@ jobs:
         run: |
           make go-cover > /tmp/output.txt
 
-          cat /tmp/output.txt
-
-          grep -v -e "^ok .*$" /tmp/output.txt | grep -v -e "^\s*$" | tee /tmp/missing.txt | \
-          awk 'BEGIN { c=0 } { print; c++ } END { print "There are " c " packages without 100% test coverage"; exit (c > 0) ? 1 : 0 }'
+          grep -v -e "^ok .*$" /tmp/output.txt | grep -v -e "^\s*$" | tee /tmp/missing.txt | awk 'BEGIN { c=0 } { print; c++ } END { print "There are " c " packages without 100% test coverage"; exit (c > 0) ? 1 : 0 }'
