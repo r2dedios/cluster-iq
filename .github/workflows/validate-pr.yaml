@@ -30,6 +30,17 @@ jobs:
           version: v1.64.5
 
       - name: Run Go Tests
-        uses: actions/setup-go@v5
         run:
-          make tests
+          make go-tests
+
+      - name: Run Go Test Coverage
+        run:
+          make go-coverage
+
+      - name: Run Go Linter
+        run:
+          make go-linter
+
+      - name: Run Go Formatter
+        run:
+          make go-fmt
