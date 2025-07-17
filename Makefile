@@ -131,7 +131,7 @@ go-test: ## Runs go tests
 	@[[ -d $(TEST_DIR) ]] || mkdir $(TEST_DIR)
 
 go-cover: ## Runs the tests and calculates the coverage %
-go-cover: test
+go-cover: go-test
 	@go test -race ./internal/inventory/... -coverprofile $(TEST_DIR)/cover.out
 
 go-linter: ## Runs go linter tools
