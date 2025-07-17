@@ -128,7 +128,7 @@ restart-dev: stop-dev start-dev
 
 # Tests targets
 .PHONY: test
-test:
+test: ## Triggers every test on the repo and calculate its coverage %
 	@[[ -d $(TEST_DIR) ]] || mkdir $(TEST_DIR)
 	@go test -race ./... -coverprofile $(TEST_DIR)/cover.out
 
