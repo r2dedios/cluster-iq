@@ -37,6 +37,9 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +48,4 @@ jobs:
 
       - name: Run Go Test Coverage
         run: |
-          echo $PWD
-          ls -la
-          make -f Makefile go-cover | grep -v -e "^ok .*$" | tee /tmp/missing.txt | awk 'BEGIN { c=0 } { print; c++ } END { print "There are " c " packages without 100% test coverage"; exit (c > 0) ? 1 : 0 }'
-        shell: bash
+          make go-cover | grep -v -e "^ok .*$" | tee /tmp/missing.txt | awk 'BEGIN { c=0 } { print; c++ } END { print "There are " c " packages without 100% test coverage"; exit (c > 0) ? 1 : 0 }'
