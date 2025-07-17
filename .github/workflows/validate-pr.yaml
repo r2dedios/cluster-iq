@@ -4,9 +4,15 @@ on:
   pull_request:
 
 jobs:
-  tests:
+  golangci:
+    name: lint
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Extract Go Version from go.mod
         id: go_version
         run: echo "GO_VERSION=$(awk '/^go /{print $2}' go.mod)" >> $GITHUB_ENV
@@ -29,6 +35,9 @@ jobs:
         with:
           version: v1.64.5
 
+  tests:
+    runs-on: ubuntu-latest
+    steps:
       - name: Run Go Tests
         run:
           make go-tests
@@ -36,10 +45,6 @@ jobs:
       - name: Run Go Test Coverage
         run:
           make go-coverage
-
-      - name: Run Go Linter
-        run:
-          make go-linter
 
       - name: Run Go Formatter
         run:
