@@ -27,9 +27,9 @@ jobs:
       - name: Set up golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64.2
+          version: v1.64.5
 
       - name: Run Go Tests
         uses: actions/setup-go@v5
         run:
-          make test
+          make tests
