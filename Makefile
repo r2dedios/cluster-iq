@@ -42,6 +42,8 @@ AGENT_IMAGE ?= $(REGISTRY)/$(REGISTRY_REPO)/$(AGENT_IMG_NAME)
 AGENT_CONTAINERFILE ?= ./$(DEPLOYMENTS_DIR)/containerfiles/Containerfile-agent
 AGENT_PROTO_PATH ?= ./cmd/agent/proto/agent.proto
 
+SHELL := /bin/bash
+
 # Standard targets
 all: ## Stop, build and start the development environment based on containers
 all: stop-dev build start-dev
@@ -127,11 +129,9 @@ restart-dev: stop-dev start-dev
 
 
 # Tests targets
-go-test: ## Runs go tests
-	@[[ -d $(TEST_DIR) ]] || mkdir $(TEST_DIR)
-
 go-cover: ## Runs the tests and calculates the coverage %
-go-cover: test
+go-cover:
+	@[[ -d $(TEST_DIR) ]] || mkdir $(TEST_DIR)
 	@go test -race ./internal/inventory/... -coverprofile $(TEST_DIR)/cover.out
 
 go-linter: ## Runs go linter tools
