@@ -36,6 +36,16 @@ export function filterByProvider<T extends { provider?: string | null }>(items: 
   return items.filter(item => item.provider && providers.includes(item.provider));
 }
 
+export function filterByClusterType<T extends { clusterType?: string | null }>(
+  items: T[],
+  types?: string[] | null
+): T[] {
+  if (!types || types.length === 0) {
+    return items;
+  }
+  return items.filter(item => item.clusterType && types.includes(item.clusterType));
+}
+
 export function paginateItems<T>(items: T[], page: number, perPage: number): T[] {
   const startIndex = (page - 1) * perPage;
   const endIndex = startIndex + perPage;

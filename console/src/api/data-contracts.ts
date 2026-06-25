@@ -112,10 +112,12 @@ export interface ClusterRequestApi {
   age?: number;
   clusterId?: string;
   clusterName?: string;
+  clusterType?: ClusterTypeApi;
   consoleLink?: string;
   createdAt?: string;
   infraId?: string;
   lastScanTimestamp?: string;
+  openshiftClusterId?: string;
   owner?: string;
   provider?: ProviderApi;
   region?: string;
@@ -129,6 +131,7 @@ export interface ClusterResponseApi {
   age?: number;
   clusterId?: string;
   clusterName?: string;
+  clusterType?: ClusterTypeApi;
   consoleLink?: string;
   createdAt?: string;
   currentMonthSoFarCost?: number;
@@ -136,11 +139,18 @@ export interface ClusterResponseApi {
   instanceCount?: number;
   lastMonthCost?: number;
   lastScanTimestamp?: string;
+  openshiftClusterId?: string;
   owner?: string;
   provider?: ProviderApi;
   region?: string;
   status?: ResourceStatusApi;
   totalCost?: number;
+}
+
+export enum ClusterTypeApi {
+  SelfManaged = 'SelfManaged',
+  Rosa = 'Rosa',
+  Osd = 'Osd',
 }
 
 export interface ClusterSummaryApi {
@@ -292,6 +302,8 @@ export enum ResourceStatusApi {
   Stopped = 'Stopped',
   /** Terminated Instance status */
   Terminated = 'Terminated',
+  /** DeleteFailed indicates a cluster deletion was attempted but did not complete */
+  DeleteFailed = 'DeleteFailed',
 }
 
 export interface ScannerApi {

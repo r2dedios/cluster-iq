@@ -1,6 +1,6 @@
 import React, { CSSProperties } from 'react';
 import { ActionTypes, ActionStatus, ActionOperations, ResultStatus } from '@app/types/types';
-import { ResourceStatusApi } from '@api';
+import { ResourceStatusApi, ClusterTypeApi } from '@api';
 import { Label } from '@patternfly/react-core';
 import {
   PendingIcon,
@@ -76,8 +76,23 @@ export function renderStatusLabel(labelText: string | null | undefined) {
       return <Label color="red">{labelText}</Label>;
     case ResourceStatusApi.Terminated:
       return <Label color="purple">{labelText}</Label>;
+    case ResourceStatusApi.DeleteFailed:
+      return <Label color="orange">{labelText}</Label>;
     default:
       return <Label color="grey">{labelText}</Label>;
+  }
+}
+
+export function renderClusterTypeLabel(clusterType: string | null | undefined) {
+  switch (clusterType) {
+    case ClusterTypeApi.SelfManaged:
+      return <Label color="blue">Self-Managed</Label>;
+    case ClusterTypeApi.Rosa:
+      return <Label color="orange">ROSA</Label>;
+    case ClusterTypeApi.Osd:
+      return <Label color="purple">OSD</Label>;
+    default:
+      return <Label color="grey">{clusterType}</Label>;
   }
 }
 
