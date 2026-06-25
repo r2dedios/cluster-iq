@@ -12,6 +12,8 @@ const (
 	Stopped ResourceStatus = "Stopped"
 	// Terminated Instance status
 	Terminated ResourceStatus = "Terminated"
+	// DeleteFailed indicates a cluster deletion was attempted but did not complete
+	DeleteFailed ResourceStatus = "DeleteFailed"
 )
 
 // AsResourceStatus converts the incoming argument into a ResourceStatus type
@@ -25,6 +27,8 @@ func AsResourceStatus(status string) ResourceStatus {
 		return Stopped
 	case "terminated":
 		return Terminated
+	case "deletefailed":
+		return DeleteFailed
 	default:
 		return Running
 	}

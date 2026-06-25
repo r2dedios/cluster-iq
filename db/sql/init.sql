@@ -13,6 +13,7 @@ CREATE TYPE STATUS AS ENUM (
   'Running',
   'Stopped',
   'Terminated',
+  'DeleteFailed',
   'Unknown'
 );
 
@@ -44,6 +45,13 @@ CREATE TYPE ACTION_STATUS AS ENUM (
   'Failed',
   'Success',
   'Unknown'
+);
+
+-- Supported values of cluster types
+CREATE TYPE CLUSTER_TYPE AS ENUM (
+  'SelfManaged',
+  'Rosa',
+  'Osd'
 );
 
 -- Supported values for Cloud Providers
@@ -102,6 +110,8 @@ CREATE TABLE IF NOT EXISTS clusters (
   created_at              TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   age                     INTEGER DEFAULT 0,
   owner                   TEXT,
+  cluster_type            CLUSTER_TYPE DEFAULT 'SelfManaged' NOT NULL,
+  openshift_cluster_id    TEXT,
   PRIMARY KEY (id),
   CONSTRAINT uq_clusters_accountid_clusterid UNIQUE (account_id, cluster_id)
 );
@@ -422,6 +432,8 @@ SELECT
   c.created_at,
   c.age,
   c.owner,
+  c.cluster_type,
+  c.openshift_cluster_id,
   COALESCE(cc.instance_count, 0)                                       AS instance_count,
   COALESCE(ac.total_cost, 0)                                           AS total_cost,
   COALESCE(ac.last_15_days_cost, 0)                                    AS last_15_days_cost,
@@ -737,7 +749,7 @@ RETURNS void AS $$
 BEGIN
   UPDATE instances
   SET status = 'Terminated'
-  WHERE status <> 'Terminated'
+  WHERE status NOT IN ('Terminated', 'DeleteFailed')
 	  AND last_scan_ts < NOW() - INTERVAL '1 day';
 END;
 $$ LANGUAGE plpgsql;
@@ -749,7 +761,7 @@ RETURNS void AS $$
 BEGIN
   UPDATE clusters
   SET status = 'Terminated'
-  WHERE status <> 'Terminated'
+  WHERE status NOT IN ('Terminated', 'DeleteFailed')
 	  AND last_scan_ts < NOW() - INTERVAL '1 day';
 END;
 $$ LANGUAGE plpgsql;

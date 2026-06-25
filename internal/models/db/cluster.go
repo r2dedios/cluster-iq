@@ -22,6 +22,8 @@ type ClusterDBResponse struct {
 	CreatedAt             time.Time                `db:"created_at"`
 	Age                   int                      `db:"age"`
 	Owner                 string                   `db:"owner"`
+	ClusterType           inventory.ClusterType    `db:"cluster_type"`
+	OpenshiftClusterID    string                   `db:"openshift_cluster_id"`
 	InstanceCount         int                      `db:"instance_count"`
 	TotalCost             float64                  `db:"total_cost"`
 	Last15DaysCost        float64                  `db:"last_15_days_cost"`

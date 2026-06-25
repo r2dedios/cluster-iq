@@ -8,18 +8,20 @@ import (
 
 // ClusterDTORequest represents the data needed to create or update a cluster.
 type ClusterDTORequest struct {
-	ClusterID         string                   `json:"clusterId"`
-	ClusterName       string                   `json:"clusterName"`
-	InfraID           string                   `json:"infraId"`
-	Provider          inventory.Provider       `json:"provider"`
-	Status            inventory.ResourceStatus `json:"status"`
-	Region            string                   `json:"region"`
-	AccountID         string                   `json:"accountId"`
-	ConsoleLink       string                   `json:"consoleLink"`
-	LastScanTimestamp time.Time                `json:"lastScanTimestamp"`
-	CreatedAt         time.Time                `json:"createdAt"`
-	Age               int                      `json:"age"`
-	Owner             string                   `json:"owner"`
+	ClusterID          string                   `json:"clusterId"`
+	ClusterName        string                   `json:"clusterName"`
+	InfraID            string                   `json:"infraId"`
+	Provider           inventory.Provider       `json:"provider"`
+	Status             inventory.ResourceStatus `json:"status"`
+	Region             string                   `json:"region"`
+	AccountID          string                   `json:"accountId"`
+	ConsoleLink        string                   `json:"consoleLink"`
+	LastScanTimestamp  time.Time                `json:"lastScanTimestamp"`
+	CreatedAt          time.Time                `json:"createdAt"`
+	Age                int                      `json:"age"`
+	Owner              string                   `json:"owner"`
+	ClusterType        inventory.ClusterType    `json:"clusterType"`
+	OpenshiftClusterID string                   `json:"openshiftClusterId"`
 } // @name ClusterRequest
 
 // ToInventoryCluster converts a ClusterDTORequest to an inventory.Cluster.
@@ -42,6 +44,8 @@ func (c ClusterDTORequest) ToInventoryCluster() (*inventory.Cluster, error) {
 	cluster.Status = c.Status
 	cluster.AccountID = c.AccountID
 	cluster.Age = c.Age
+	cluster.ClusterType = c.ClusterType
+	cluster.OpenshiftClusterID = c.OpenshiftClusterID
 
 	return cluster, nil
 }
@@ -61,18 +65,20 @@ func ToInventoryClusterList(dtos []ClusterDTORequest) (*[]inventory.Cluster, err
 
 func ToClusterDTORequest(cluster inventory.Cluster) *ClusterDTORequest {
 	return &ClusterDTORequest{
-		ClusterID:         cluster.ClusterID,
-		ClusterName:       cluster.ClusterName,
-		InfraID:           cluster.InfraID,
-		Provider:          cluster.Provider,
-		Status:            cluster.Status,
-		Region:            cluster.Region,
-		AccountID:         cluster.AccountID,
-		ConsoleLink:       cluster.ConsoleLink,
-		LastScanTimestamp: cluster.LastScanTimestamp,
-		CreatedAt:         cluster.CreatedAt,
-		Age:               cluster.Age,
-		Owner:             cluster.Owner,
+		ClusterID:          cluster.ClusterID,
+		ClusterName:        cluster.ClusterName,
+		InfraID:            cluster.InfraID,
+		Provider:           cluster.Provider,
+		Status:             cluster.Status,
+		Region:             cluster.Region,
+		AccountID:          cluster.AccountID,
+		ConsoleLink:        cluster.ConsoleLink,
+		LastScanTimestamp:  cluster.LastScanTimestamp,
+		CreatedAt:          cluster.CreatedAt,
+		Age:                cluster.Age,
+		Owner:              cluster.Owner,
+		ClusterType:        cluster.ClusterType,
+		OpenshiftClusterID: cluster.OpenshiftClusterID,
 	}
 }
 
@@ -102,6 +108,8 @@ type ClusterDTOResponse struct {
 	CreatedAt             time.Time                `json:"createdAt"`
 	Age                   int                      `json:"age"`
 	Owner                 string                   `json:"owner"`
+	ClusterType           inventory.ClusterType    `json:"clusterType"`
+	OpenshiftClusterID    string                   `json:"openshiftClusterId"`
 	TotalCost             float64                  `json:"totalCost"`
 	Last15DaysCost        float64                  `json:"last15DaysCost"`
 	LastMonthCost         float64                  `json:"lastMonthCost"`

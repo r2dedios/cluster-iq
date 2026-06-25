@@ -104,6 +104,8 @@ func (c *ConverterImpl) ToClusterDTO(source db.ClusterDBResponse) dto.ClusterDTO
 	dtoClusterDTOResponse.CreatedAt = Time(source.CreatedAt)
 	dtoClusterDTOResponse.Age = source.Age
 	dtoClusterDTOResponse.Owner = source.Owner
+	dtoClusterDTOResponse.ClusterType = inventory.ClusterType(source.ClusterType)
+	dtoClusterDTOResponse.OpenshiftClusterID = source.OpenshiftClusterID
 	dtoClusterDTOResponse.TotalCost = source.TotalCost
 	dtoClusterDTOResponse.Last15DaysCost = source.Last15DaysCost
 	dtoClusterDTOResponse.LastMonthCost = source.LastMonthCost

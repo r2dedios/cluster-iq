@@ -58,6 +58,9 @@ func (s *AWSStocker) processInstances(instances []inventory.Instance) {
 			continue
 		}
 
+		cluster.ClusterType = inventory.GetClusterTypeFromTags(instance.Tags)
+		cluster.OpenshiftClusterID = inventory.GetOpenshiftClusterIDFromTags(instance.Tags)
+
 		if !s.Account.IsClusterInAccount(cluster.ClusterID) {
 			if err := s.Account.AddCluster(cluster); err != nil {
 				s.logger.Error("error adding cluster to account during instance processing",

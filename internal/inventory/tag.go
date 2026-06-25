@@ -5,10 +5,19 @@ import (
 	"strings"
 )
 
+// TODO: The infraID suffix is assumed to be exactly 5 characters. Some OpenShift
+// versions or configurations may use longer suffixes. Validate against real
+// clusters (IPI, UPI, SNO, ROSA, OSD) and adjust the regex if needed.
 const (
 	clusterNameRegexp = "kubernetes.io/cluster/(.*?)-.{5}$" // RegExp to get the Cluster Name configured by `openshift-installer` from Tags
 	infraIDRegexp     = "kubernetes.io/cluster/.*-(.{5}?)$" // RegExp to get the InfrastructureID configured by `openshift-installer` from Tags
 	clusterIDRegexp   = "kubernetes.io/cluster/(.+)$"       // RegExp to get the ClusterID (ClusterName + InfraID) configured by `openshift-installer` from Tags
+)
+
+const (
+	RedHatClusterTypeTag  = "red-hat-clustertype"
+	RedHatManagedTag      = "red-hat-managed"
+	OpenshiftClusterIDTag = "openshiftClusterID"
 )
 
 // Tag model generic tags as a Key-Value object
@@ -116,4 +125,36 @@ func GetInfraIDFromTags(tags []Tag) string {
 		}
 	}
 	return UnknownClusterNameCode
+}
+
+// GetClusterTypeFromTags detects the OpenShift cluster type from AWS instance tags.
+// ROSA and OSD clusters have reserved tags (red-hat-clustertype, red-hat-managed)
+// that cannot be set manually. Self-managed clusters (IPI/UPI/SNO) lack these tags.
+func GetClusterTypeFromTags(tags []Tag) ClusterType {
+	clusterTypeTag := LookForTagByKey(RedHatClusterTypeTag, tags)
+	if clusterTypeTag != nil {
+		switch strings.ToLower(clusterTypeTag.Value) {
+		case "rosa":
+			return Rosa
+		case "osd":
+			return Osd
+		}
+	}
+
+	managedTag := LookForTagByKey(RedHatManagedTag, tags)
+	if managedTag != nil && strings.ToLower(managedTag.Value) == "true" {
+		return Rosa
+	}
+
+	return SelfManaged
+}
+
+// GetOpenshiftClusterIDFromTags extracts the OpenShift cluster UUID from instance tags.
+// This UUID is needed to reconstruct metadata.json for openshift-install destroy.
+func GetOpenshiftClusterIDFromTags(tags []Tag) string {
+	result := LookForTagByKey(OpenshiftClusterIDTag, tags)
+	if result != nil {
+		return result.Value
+	}
+	return ""
 }

@@ -66,6 +66,12 @@ type Cluster struct {
 	// Owner is the name of who created the cluster (Normally, extracted from instance tags).
 	Owner string `db:"owner"`
 
+	// ClusterType identifies how the cluster was provisioned (SelfManaged, Rosa, Osd).
+	ClusterType ClusterType `db:"cluster_type"`
+
+	// OpenshiftClusterID is the OpenShift UUID extracted from the openshiftClusterID tag.
+	OpenshiftClusterID string `db:"openshift_cluster_id"`
+
 	// In-memory fields (no saved on DB)
 	// ===========================================================================
 
@@ -85,19 +91,21 @@ func NewCluster(clusterName string, infraID string, provider Provider, region st
 	now := time.Now()
 
 	return &Cluster{
-		ClusterID:         GenerateClusterID(clusterName, infraID),
-		ClusterName:       clusterName,
-		InfraID:           infraID,
-		Provider:          provider,
-		Status:            Stopped,
-		Region:            region,
-		AccountID:         "",
-		ConsoleLink:       consoleLink,
-		LastScanTimestamp: now,
-		CreatedAt:         now,
-		Age:               0,
-		Owner:             owner,
-		Instances:         make([]Instance, 0),
+		ClusterID:          GenerateClusterID(clusterName, infraID),
+		ClusterName:        clusterName,
+		InfraID:            infraID,
+		Provider:           provider,
+		Status:             Stopped,
+		Region:             region,
+		AccountID:          "",
+		ConsoleLink:        consoleLink,
+		LastScanTimestamp:  now,
+		CreatedAt:          now,
+		Age:                0,
+		Owner:              owner,
+		ClusterType:        SelfManaged,
+		OpenshiftClusterID: "",
+		Instances:          make([]Instance, 0),
 	}, nil
 }
 
@@ -154,6 +162,10 @@ func (c *Cluster) UpdateAge() error {
 // - All instances Terminated -> Terminated
 // - Otherwise (mix of Stopped/Terminated or all Stopped) -> Stopped
 func (c *Cluster) UpdateStatus() {
+	if c.Status == DeleteFailed {
+		return
+	}
+
 	instanceCount := len(c.Instances)
 
 	if instanceCount == 0 {
@@ -169,7 +181,7 @@ func (c *Cluster) UpdateStatus() {
 			return
 		case Terminated:
 			terminatedCount++
-		case Stopped:
+		case Stopped, DeleteFailed:
 			continue
 		}
 	}
