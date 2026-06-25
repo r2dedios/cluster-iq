@@ -1,4 +1,5 @@
 import { parseNumberToCurrency, parseScanTimestamp } from '@app/utils/parseFuncs';
+import { renderProviderIcon } from '@app/utils/renderUtils';
 import {
   DescriptionList,
   DescriptionListGroup,
@@ -20,7 +21,7 @@ export const AccountDescriptionList: React.FunctionComponent<AccountDescriptionL
         <DescriptionListTerm>Clusters count</DescriptionListTerm>
         <DescriptionListDescription>{account.clusterCount}</DescriptionListDescription>
         <DescriptionListTerm>Cloud Provider</DescriptionListTerm>
-        <DescriptionListDescription>{account.provider}</DescriptionListDescription>
+        <DescriptionListDescription>{renderProviderIcon(account.provider)}</DescriptionListDescription>
       </DescriptionListGroup>
 
       <DescriptionListGroup>

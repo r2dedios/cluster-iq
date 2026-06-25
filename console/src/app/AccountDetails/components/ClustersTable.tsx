@@ -1,4 +1,4 @@
-import { renderStatusLabel } from '@app/utils/renderUtils';
+import { renderStatusLabel, renderClusterTypeLabel, renderProviderIcon } from '@app/utils/renderUtils';
 import { ThProps, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -11,6 +11,7 @@ const columnNames = {
   name: 'Name',
   status: 'Status',
   cloudProvider: 'Cloud Provider',
+  clusterType: 'Type',
   instanceCount: 'Instance Count',
 };
 
@@ -25,6 +26,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({ clu
       'clusterName',
       'status',
       'provider',
+      'clusterType',
       'instanceCount',
     ];
     // status column (index 2) is not sortable
@@ -54,7 +56,8 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({ clu
           <Th sort={getSortParams(1)}>{columnNames.name}</Th>
           <Th>{columnNames.status}</Th>
           <Th sort={getSortParams(3)}>{columnNames.cloudProvider}</Th>
-          <Th sort={getSortParams(4)}>{columnNames.instanceCount}</Th>
+          <Th sort={getSortParams(4)}>{columnNames.clusterType}</Th>
+          <Th sort={getSortParams(5)}>{columnNames.instanceCount}</Th>
         </Tr>
       </Thead>
       <Tbody>
@@ -65,7 +68,8 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({ clu
             </Td>
             <Td>{cluster.clusterName}</Td>
             <Td dataLabel={cluster.status}>{renderStatusLabel(cluster.status)}</Td>
-            <Td>{cluster.provider}</Td>
+            <Td>{renderProviderIcon(cluster.provider)}</Td>
+            <Td>{renderClusterTypeLabel(cluster.clusterType)}</Td>
             <Td>{cluster.instanceCount}</Td>
           </Tr>
         ))}
