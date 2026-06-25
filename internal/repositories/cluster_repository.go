@@ -37,7 +37,9 @@ const (
 			last_scan_ts,
 			created_at,
 			age,
-			owner
+			owner,
+			cluster_type,
+			openshift_cluster_id
 		) VALUES (
 			:cluster_id,
 			:cluster_name,
@@ -50,7 +52,9 @@ const (
 			:last_scan_ts,
 			:created_at,
 			:age,
-			:owner
+			:owner,
+			:cluster_type,
+			:openshift_cluster_id
 		) ON CONFLICT ON CONSTRAINT uq_clusters_accountid_clusterid DO UPDATE SET
 			status = EXCLUDED.status,
 			region = EXCLUDED.region,
@@ -58,7 +62,9 @@ const (
 			last_scan_ts = EXCLUDED.last_scan_ts,
 			created_at = EXCLUDED.created_at,
 			age = EXCLUDED.age,
-			owner = EXCLUDED.owner
+			owner = EXCLUDED.owner,
+			cluster_type = EXCLUDED.cluster_type,
+			openshift_cluster_id = EXCLUDED.openshift_cluster_id
 	`
 )
 
@@ -317,12 +323,12 @@ func (r *clusterRepositoryImpl) GetTopOwners(ctx context.Context, limit int) ([]
 // GetClustersByPartner returns cluster counts grouped by the Partner tag.
 func (r *clusterRepositoryImpl) GetClustersByPartner(ctx context.Context) ([]inventory.TopItem, error) {
 	var items []inventory.TopItem
-	query := `SELECT t.value AS name, COUNT(DISTINCT c.cluster_id) AS cluster_count
-		FROM tags t
-		JOIN instances i ON t.instance_id = i.id
-		JOIN clusters c ON i.cluster_id = c.id
-		WHERE t.key = 'Partner' AND c.status != 'Terminated'
-		GROUP BY t.value
+	query := `SELECT COALESCE(t.value, 'Red Hat') AS name, COUNT(DISTINCT c.cluster_id) AS cluster_count
+		FROM clusters c
+		JOIN instances i ON i.cluster_id = c.id
+		LEFT JOIN tags t ON t.instance_id = i.id AND t.key = 'Partner'
+		WHERE c.status != 'Terminated'
+		GROUP BY COALESCE(t.value, 'Red Hat')
 		ORDER BY cluster_count DESC`
 	if err := r.db.QuerySelectContext(ctx, &items, query); err != nil {
 		return nil, fmt.Errorf("failed to get clusters by partner: %w", err)
