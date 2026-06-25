@@ -1,4 +1,4 @@
-import { ResourceStatusApi, ProviderApi } from '@api';
+import { ResourceStatusApi, ProviderApi, ClusterTypeApi } from '@api';
 
 export interface ClustersTableToolbarProps {
   clusterNameSearch: string;
@@ -9,6 +9,8 @@ export interface ClustersTableToolbarProps {
   setStatusSelection: (value: ResourceStatusApi | null) => void;
   providerSelections: ProviderApi[] | null;
   setProviderSelections: (value: ProviderApi[] | null) => void;
+  clusterTypeSelections: ClusterTypeApi[] | null;
+  setClusterTypeSelections: (value: ClusterTypeApi[] | null) => void;
   showTerminated: boolean;
   setShowTerminated: (value: boolean) => void;
 }
@@ -18,5 +20,6 @@ export interface ClustersTableProps {
   accountNameSearch: string;
   statusFilter: string | null;
   providerSelections: ProviderApi[] | null;
+  clusterTypeSelections: ClusterTypeApi[] | null;
   showTerminated: boolean;
 }

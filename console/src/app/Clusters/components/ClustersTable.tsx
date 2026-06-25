@@ -1,4 +1,4 @@
-import { renderStatusLabel, ResourceBadge, renderProviderIcon } from '@app/utils/renderUtils';
+import { renderStatusLabel, renderClusterTypeLabel, ResourceBadge, renderProviderIcon } from '@app/utils/renderUtils';
 import { parseNumberToCurrency } from '@app/utils/parseFuncs';
 import { ThProps, Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import React, { useState, useMemo } from 'react';
@@ -7,7 +7,7 @@ import { ClusterResponseApi } from '@api';
 import { ClustersTableProps } from '../types';
 import { TableSkeleton } from '@app/components/common/TableSkeleton';
 import { TablePagination } from '@app/components/common/TablesPagination';
-import { searchItems, filterByStatus, filterByProvider, sortItems } from '@app/utils/tableFilters';
+import { searchItems, filterByStatus, filterByProvider, filterByClusterType, sortItems } from '@app/utils/tableFilters';
 import { EmptyState, EmptyStateVariant, EmptyStateBody, Title } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { useClusters } from '@app/hooks/useClusters';
@@ -18,6 +18,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
   accountNameSearch,
   statusFilter,
   providerSelections,
+  clusterTypeSelections,
   showTerminated,
 }) => {
   const { data: allClusters = [], isLoading } = useClusters();
@@ -42,6 +43,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
 
     processed = filterByStatus(processed, statusFilter);
     processed = filterByProvider(processed, providerSelections);
+    processed = filterByClusterType(processed, clusterTypeSelections);
 
     if (activeSortIndex !== undefined && activeSortDirection) {
       const sortFields: (keyof ClusterResponseApi)[] = [
@@ -50,6 +52,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
         'status',
         'accountId',
         'provider',
+        'clusterType',
         'region',
         'last15DaysCost',
         'consoleLink',
@@ -65,13 +68,21 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
     accountNameSearch,
     statusFilter,
     providerSelections,
+    clusterTypeSelections,
     activeSortIndex,
     activeSortDirection,
   ]);
 
   const { page, perPage, setPage, setPerPage, paginatedData, totalItems } = useTablePagination({
     data: filtered,
-    filterDeps: [clusterNameSearch, accountNameSearch, statusFilter, providerSelections, showTerminated],
+    filterDeps: [
+      clusterNameSearch,
+      accountNameSearch,
+      statusFilter,
+      providerSelections,
+      clusterTypeSelections,
+      showTerminated,
+    ],
   });
 
   const columnNames = {
@@ -80,6 +91,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
     status: 'Status',
     account: 'Account',
     provider: 'Provider',
+    clusterType: 'Type',
     region: 'Region',
     cost15d: 'Cost (15d)',
     console: 'Web console',
@@ -99,7 +111,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
   });
 
   if (isLoading) {
-    return <TableSkeleton columns={8} />;
+    return <TableSkeleton columns={9} />;
   }
 
   if (filtered.length === 0) {
@@ -138,8 +150,9 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
             <Th>{columnNames.status}</Th>
             <Th sort={getSortParams(3)}>{columnNames.account}</Th>
             <Th sort={getSortParams(4)}>{columnNames.provider}</Th>
-            <Th sort={getSortParams(5)}>{columnNames.region}</Th>
-            <Th sort={getSortParams(6)}>{columnNames.cost15d}</Th>
+            <Th sort={getSortParams(5)}>{columnNames.clusterType}</Th>
+            <Th sort={getSortParams(6)}>{columnNames.region}</Th>
+            <Th sort={getSortParams(7)}>{columnNames.cost15d}</Th>
             <Th>{columnNames.console}</Th>
           </Tr>
         </Thead>
@@ -156,6 +169,7 @@ export const ClustersTable: React.FunctionComponent<ClustersTableProps> = ({
                 <Link to={`/accounts/${cluster.accountId}`}>{cluster.accountName}</Link>
               </Td>
               <Td dataLabel={columnNames.provider}>{renderProviderIcon(cluster.provider)}</Td>
+              <Td dataLabel={columnNames.clusterType}>{renderClusterTypeLabel(cluster.clusterType)}</Td>
               <Td dataLabel={columnNames.region}>{cluster.region}</Td>
               <Td dataLabel={columnNames.cost15d}>{parseNumberToCurrency(cluster.last15DaysCost)}</Td>
               <Td dataLabel={columnNames.console}>

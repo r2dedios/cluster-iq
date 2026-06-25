@@ -19,7 +19,7 @@ import { FilterIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { ClustersTableToolbarProps } from '../types';
 import debounce from 'lodash.debounce';
-import { ResourceStatusApi, ProviderApi } from '@api';
+import { ResourceStatusApi, ProviderApi, ClusterTypeApi } from '@api';
 import { usePopperContainer } from '@app/hooks/usePopperContainer';
 
 export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarProps> = ({
@@ -31,6 +31,8 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
   setStatusSelection,
   providerSelections,
   setProviderSelections,
+  clusterTypeSelections,
+  setClusterTypeSelections,
   showTerminated,
   setShowTerminated,
 }) => {
@@ -49,7 +51,7 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
   const debouncedAccountSearch = React.useCallback((v: string) => debouncedAccountSearchRef.current(v), []);
 
   const [activeAttributeMenu, setActiveAttributeMenu] = React.useState<
-    'Cluster Name' | 'Account Name' | 'Status' | 'Provider'
+    'Cluster Name' | 'Account Name' | 'Status' | 'Provider' | 'Cluster Type'
   >('Cluster Name');
 
   const clusterNameInput = (
@@ -301,6 +303,144 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
     </div>
   );
 
+  // Cluster Type filter setup
+  const [isClusterTypeMenuOpen, setIsClusterTypeMenuOpen] = React.useState<boolean>(false);
+  const clusterTypeToggleRef = React.useRef<HTMLButtonElement>(null);
+  const clusterTypeMenuRef = React.useRef<HTMLDivElement>(null);
+  const { containerRef: clusterTypeContainerRef, containerElement: clusterTypeContainerElement } = usePopperContainer();
+
+  const handleClusterTypeMenuKeysRef = React.useRef<(event: KeyboardEvent) => void>();
+  const handleClusterTypeClickOutsideRef = React.useRef<(event: MouseEvent) => void>();
+
+  React.useEffect(() => {
+    handleClusterTypeMenuKeysRef.current = (event: KeyboardEvent) => {
+      if (isClusterTypeMenuOpen && clusterTypeMenuRef.current?.contains(event.target as Node)) {
+        if (event.key === 'Escape' || event.key === 'Tab') {
+          setIsClusterTypeMenuOpen(!isClusterTypeMenuOpen);
+          clusterTypeToggleRef.current?.focus();
+        }
+      }
+    };
+
+    handleClusterTypeClickOutsideRef.current = (event: MouseEvent) => {
+      if (isClusterTypeMenuOpen && !clusterTypeMenuRef.current?.contains(event.target as Node)) {
+        setIsClusterTypeMenuOpen(false);
+      }
+    };
+  });
+
+  React.useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => handleClusterTypeMenuKeysRef.current?.(event);
+    const handleClick = (event: MouseEvent) => handleClusterTypeClickOutsideRef.current?.(event);
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('click', handleClick);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('click', handleClick);
+    };
+  }, [isClusterTypeMenuOpen]);
+
+  const onClusterTypeMenuToggleClick = (ev: React.MouseEvent) => {
+    ev.stopPropagation();
+    setTimeout(() => {
+      if (clusterTypeMenuRef.current) {
+        const firstElement = clusterTypeMenuRef.current.querySelector('li > button:not(:disabled)');
+        if (firstElement) {
+          (firstElement as HTMLElement).focus();
+        }
+      }
+    }, 0);
+    setIsClusterTypeMenuOpen(!isClusterTypeMenuOpen);
+  };
+
+  function onClusterTypeMenuSelect(_event: React.MouseEvent | undefined, itemId: string | number | undefined) {
+    if (typeof itemId === 'undefined') {
+      return;
+    }
+
+    const ct = itemId as ClusterTypeApi;
+    setClusterTypeSelections(
+      clusterTypeSelections && clusterTypeSelections.includes(ct)
+        ? clusterTypeSelections.filter(selection => selection !== ct)
+        : ct
+          ? [ct, ...(clusterTypeSelections || [])]
+          : []
+    );
+  }
+
+  const clusterTypeToggle = (
+    <MenuToggle
+      ref={clusterTypeToggleRef}
+      onClick={onClusterTypeMenuToggleClick}
+      isExpanded={isClusterTypeMenuOpen}
+      {...(clusterTypeSelections &&
+        clusterTypeSelections.length > 0 && {
+          badge: <Badge isRead>{clusterTypeSelections.length}</Badge>,
+        })}
+      style={
+        {
+          width: '200px',
+        } as React.CSSProperties
+      }
+    >
+      Filter by cluster type
+    </MenuToggle>
+  );
+
+  const CLUSTER_TYPE_LABELS: Record<ClusterTypeApi, string> = {
+    [ClusterTypeApi.SelfManaged]: 'Self-Managed',
+    [ClusterTypeApi.Rosa]: 'ROSA',
+    [ClusterTypeApi.Osd]: 'OSD',
+  };
+
+  const clusterTypeMenu = (
+    <Menu
+      ref={clusterTypeMenuRef}
+      id="attribute-search-cluster-type-menu"
+      onSelect={onClusterTypeMenuSelect}
+      selected={clusterTypeSelections}
+    >
+      <MenuContent>
+        <MenuList>
+          <MenuItem
+            hasCheckbox
+            isSelected={clusterTypeSelections?.includes(ClusterTypeApi.SelfManaged)}
+            itemId={ClusterTypeApi.SelfManaged}
+          >
+            {CLUSTER_TYPE_LABELS[ClusterTypeApi.SelfManaged]}
+          </MenuItem>
+          <MenuItem
+            hasCheckbox
+            isSelected={clusterTypeSelections?.includes(ClusterTypeApi.Rosa)}
+            itemId={ClusterTypeApi.Rosa}
+          >
+            {CLUSTER_TYPE_LABELS[ClusterTypeApi.Rosa]}
+          </MenuItem>
+          <MenuItem
+            hasCheckbox
+            isSelected={clusterTypeSelections?.includes(ClusterTypeApi.Osd)}
+            itemId={ClusterTypeApi.Osd}
+          >
+            {CLUSTER_TYPE_LABELS[ClusterTypeApi.Osd]}
+          </MenuItem>
+        </MenuList>
+      </MenuContent>
+    </Menu>
+  );
+
+  const clusterTypeSelect = (
+    <div ref={clusterTypeContainerRef}>
+      <Popper
+        trigger={clusterTypeToggle}
+        triggerRef={clusterTypeToggleRef}
+        popper={clusterTypeMenu}
+        popperRef={clusterTypeMenuRef}
+        appendTo={clusterTypeContainerElement || undefined}
+        isVisible={isClusterTypeMenuOpen}
+      />
+    </div>
+  );
+
   const [isAttributeMenuOpen, setIsAttributeMenuOpen] = React.useState(false);
   const attributeToggleRef = React.useRef<HTMLButtonElement>(null);
   const attributeMenuRef = React.useRef<HTMLDivElement>(null);
@@ -357,7 +497,7 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
   };
 
   const onAttributeSelect = (_ev: React.MouseEvent | undefined, itemId: string | number | undefined) => {
-    const selected = itemId as 'Cluster Name' | 'Account Name' | 'Status' | 'Provider';
+    const selected = itemId as 'Cluster Name' | 'Account Name' | 'Status' | 'Provider' | 'Cluster Type';
     setActiveAttributeMenu(selected);
     setIsAttributeMenuOpen(!isAttributeMenuOpen);
   };
@@ -381,6 +521,7 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
           <MenuItem itemId="Account Name">Account Name</MenuItem>
           <MenuItem itemId="Status">Status</MenuItem>
           <MenuItem itemId="Provider">Provider</MenuItem>
+          <MenuItem itemId="Cluster Type">Cluster Type</MenuItem>
         </MenuList>
       </MenuContent>
     </Menu>
@@ -407,6 +548,7 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
         setAccountNameSearch('');
         setStatusSelection(null);
         setProviderSelections(null);
+        setClusterTypeSelections(null);
         setActiveAttributeMenu('Cluster Name');
       }}
     >
@@ -449,6 +591,15 @@ export const ClustersTableToolbar: React.FunctionComponent<ClustersTableToolbarP
               showToolbarItem={activeAttributeMenu === 'Provider'}
             >
               {providerSelect}
+            </ToolbarFilter>
+            <ToolbarFilter
+              labels={clusterTypeSelections || []}
+              deleteLabel={(_category, chip) => onClusterTypeMenuSelect(undefined, chip as string)}
+              deleteLabelGroup={() => setClusterTypeSelections([])}
+              categoryName="Cluster Type"
+              showToolbarItem={activeAttributeMenu === 'Cluster Type'}
+            >
+              {clusterTypeSelect}
             </ToolbarFilter>
           </ToolbarGroup>
         </ToolbarToggleGroup>

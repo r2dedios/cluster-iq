@@ -3,7 +3,7 @@ import React from 'react';
 import ClustersTable from './components/ClustersTable';
 import ClustersTableToolbar from './components/ClustersTableToolbar';
 import { parseAsArrayOf, parseAsString, parseAsStringEnum, parseAsBoolean, useQueryStates } from 'nuqs';
-import { ResourceStatusApi, ProviderApi } from '@api';
+import { ResourceStatusApi, ProviderApi, ClusterTypeApi } from '@api';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 
 const filterParams = {
@@ -12,6 +12,7 @@ const filterParams = {
     defaultValue: null as ResourceStatusApi | null,
   },
   provider: parseAsArrayOf(parseAsStringEnum<ProviderApi>(Object.values(ProviderApi))).withDefault([]),
+  clusterType: parseAsArrayOf(parseAsStringEnum<ClusterTypeApi>(Object.values(ClusterTypeApi))).withDefault([]),
   clusterName: parseAsString.withDefault(''),
   accountName: parseAsString.withDefault(''),
   showTerminated: parseAsBoolean.withDefault(false),
@@ -19,7 +20,8 @@ const filterParams = {
 
 const Clusters: React.FunctionComponent = () => {
   useDocumentTitle('Clusters — ClusterIQ');
-  const [{ status, provider, clusterName, accountName, showTerminated }, setQuery] = useQueryStates(filterParams);
+  const [{ status, provider, clusterType, clusterName, accountName, showTerminated }, setQuery] =
+    useQueryStates(filterParams);
 
   return (
     <React.Fragment>
@@ -39,6 +41,8 @@ const Clusters: React.FunctionComponent = () => {
             setStatusSelection={value => setQuery({ status: value })}
             providerSelections={provider}
             setProviderSelections={value => setQuery({ provider: value || [] })}
+            clusterTypeSelections={clusterType}
+            setClusterTypeSelections={value => setQuery({ clusterType: value || [] })}
             showTerminated={showTerminated}
             setShowTerminated={value => setQuery({ showTerminated: value })}
           />
@@ -47,6 +51,7 @@ const Clusters: React.FunctionComponent = () => {
             accountNameSearch={accountName}
             statusFilter={status}
             providerSelections={provider}
+            clusterTypeSelections={clusterType}
             showTerminated={showTerminated}
           />
         </Panel>
