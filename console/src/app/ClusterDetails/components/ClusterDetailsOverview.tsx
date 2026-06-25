@@ -1,6 +1,6 @@
 import { LoadingSpinner } from '@app/components/common/LoadingSpinner';
 import { parseNumberToCurrency, parseScanTimestamp } from '@app/utils/parseFuncs';
-import { renderStatusLabel, ResourceLabel } from '@app/utils/renderUtils';
+import { renderStatusLabel, renderClusterTypeLabel, ResourceLabel } from '@app/utils/renderUtils';
 import { ClusterResponseApi, TagResponseApi } from '@api';
 import {
   Flex,
@@ -99,6 +99,8 @@ const ClusterDetailsOverview: React.FunctionComponent = () => {
                 <DescriptionListDescription>{cluster?.infraId}</DescriptionListDescription>
                 <DescriptionListTerm>Status</DescriptionListTerm>
                 <DescriptionListDescription>{renderStatusLabel(cluster?.status)}</DescriptionListDescription>
+                <DescriptionListTerm>Cluster Type</DescriptionListTerm>
+                <DescriptionListDescription>{renderClusterTypeLabel(cluster?.clusterType)}</DescriptionListDescription>
               </DescriptionListGroup>
 
               <DescriptionListGroup name="Cluster links">
