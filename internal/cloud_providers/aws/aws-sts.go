@@ -1,36 +1,41 @@
 package cloudprovider
 
 import (
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 const unknownAccountIDCode = "Unknown_Account_ID"
 
-type AWSSTSConnection struct {
-	client *sts.STS
+// stsAPI defines the subset of the STS API used by AWSSTSConnection.
+type stsAPI interface {
+	GetCallerIdentity(ctx context.Context, input *sts.GetCallerIdentityInput, opts ...func(*sts.Options)) (*sts.GetCallerIdentityOutput, error)
 }
 
-func NewAWSSTSConnection(session *session.Session) *AWSSTSConnection {
+type AWSSTSConnection struct {
+	client stsAPI
+}
+
+func NewAWSSTSConnection(cfg aws.Config) *AWSSTSConnection {
 	return &AWSSTSConnection{
-		client: sts.New(session),
+		client: sts.NewFromConfig(cfg),
 	}
 }
 
-func (c *AWSSTSConnection) getAWSAccountID() string {
-	input := &sts.GetCallerIdentityInput{}
-
-	req, err := c.client.GetCallerIdentity(input)
+func (c *AWSSTSConnection) GetAWSAccountID(ctx context.Context) string {
+	result, err := c.client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return unknownAccountIDCode
 	}
 
-	return *req.Account
+	return aws.ToString(result.Account)
 }
 
-// WitSTS configures an AWSConnection instance for including the STS client
+// WithSTS configures an AWSConnection instance for including the STS client
 func WithSTS() AWSConnectionOption {
 	return func(conn *AWSConnection) {
-		conn.STS = NewAWSSTSConnection(conn.awsSession)
+		conn.STS = NewAWSSTSConnection(conn.awsCfg)
 	}
 }

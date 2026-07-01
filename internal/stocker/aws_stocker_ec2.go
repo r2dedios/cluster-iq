@@ -1,6 +1,7 @@
 package stocker
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/inventory"
@@ -9,7 +10,7 @@ import (
 
 // processRegion gets from EC2 API the list of the instances running for the specified region, and runs its processing to group them by clusterID
 func (s *AWSStocker) processRegion(region string) error {
-	if err := s.conn.SetRegion(region); err != nil {
+	if err := s.conn.SetRegion(context.Background(), region); err != nil {
 		return err
 	}
 	s.logger.Info("Scraping region",
@@ -17,7 +18,7 @@ func (s *AWSStocker) processRegion(region string) error {
 		zap.String("region", s.conn.GetRegion()),
 	)
 
-	instances, err := s.conn.EC2.GetInstances()
+	instances, err := s.conn.EC2.GetInstances(context.Background())
 	if err != nil {
 		return fmt.Errorf("couldn't retrieve EC2 instances in region %s: %w", s.conn.GetRegion(), err)
 	}

@@ -1,6 +1,7 @@
 package cloudagent
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/actions"
@@ -22,7 +23,7 @@ type AWSExecutor struct {
 // to validate that the connection is correct.
 func NewAWSExecutor(account *inventory.Account, ch <-chan actions.Action, logger *zap.Logger) *AWSExecutor {
 	// Generate AWSConnection
-	conn, err := cpaws.NewAWSConnection(account.User(), account.Password(), "", cpaws.WithEC2())
+	conn, err := cpaws.NewAWSConnection(context.Background(), account.User(), account.Password(), "", cpaws.WithEC2())
 	if err != nil {
 		logger.Error("Cannot create an AWS connection for the AWS Executor", zap.Error(err))
 		return nil
@@ -58,6 +59,9 @@ func (e *AWSExecutor) ProcessAction(action actions.Action) error {
 	case actions.PowerOff:
 		return e.PowerOffCluster(target.GetInstances())
 
+	case actions.DeleteCluster:
+		return e.DeleteCluster(target)
+
 	case actions.Scan:
 		return fmt.Errorf("scan operations are handled by the scanner service, not the cloud executor")
 
@@ -73,7 +77,7 @@ func (e AWSExecutor) GetAccountID() string {
 
 // SetRegion configures a new region for the AWSConnection and refreshes the AWSServiceClients with the new region
 func (e *AWSExecutor) SetRegion(region string) error {
-	return e.conn.SetRegion(region)
+	return e.conn.SetRegion(context.Background(), region)
 }
 
 // PowerOnCluster attempts to start the EC2 instances specified by instanceIDs.
@@ -85,7 +89,7 @@ func (e *AWSExecutor) PowerOnCluster(instanceIDs []string) error {
 	}
 
 	e.logger.Info("Starting cluster instances", zap.Strings("instances", instanceIDs))
-	if err := e.conn.EC2.StartClusterInstances(instanceIDs); err != nil {
+	if err := e.conn.EC2.StartClusterInstances(context.Background(), instanceIDs); err != nil {
 		e.logger.Error("Failed to start cluster instances", zap.Strings("instances", instanceIDs), zap.Error(err))
 		return err
 	}
@@ -102,7 +106,7 @@ func (e *AWSExecutor) PowerOffCluster(instanceIDs []string) error {
 	}
 
 	e.logger.Info("Stopping cluster instances", zap.Strings("instances", instanceIDs))
-	if err := e.conn.EC2.StopClusterInstances(instanceIDs); err != nil {
+	if err := e.conn.EC2.StopClusterInstances(context.Background(), instanceIDs); err != nil {
 		e.logger.Error("Failed to stop cluster instances", zap.Strings("instances", instanceIDs), zap.Error(err))
 		return err
 	}
@@ -110,7 +114,20 @@ func (e *AWSExecutor) PowerOffCluster(instanceIDs []string) error {
 	return nil
 }
 
+// DeleteCluster handles the deletion of a self-managed OpenShift cluster.
+// Currently a stub — the openshift-install destroy logic will be implemented in a later phase.
+func (e *AWSExecutor) DeleteCluster(target actions.ActionTarget) error {
+	e.logger.Info("DeleteCluster requested",
+		zap.String("cluster_id", target.ClusterID),
+		zap.String("cluster_name", target.ClusterName),
+		zap.String("infra_id", target.InfraID),
+		zap.String("cluster_type", target.ClusterType),
+		zap.String("region", target.Region),
+	)
+	return fmt.Errorf("DeleteCluster execution not yet implemented")
+}
+
 // Connect establishes the connection with AWS.
 func (e *AWSExecutor) Connect() error {
-	return e.conn.Connect()
+	return e.conn.Connect(context.Background())
 }

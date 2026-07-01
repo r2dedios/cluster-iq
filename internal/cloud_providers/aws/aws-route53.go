@@ -1,71 +1,81 @@
 package cloudprovider
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/inventory"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	r53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 )
 
-type AWSRoute53Connection struct {
-	client *route53.Route53
+type route53API interface {
+	ListHostedZonesByName(ctx context.Context, input *route53.ListHostedZonesByNameInput, opts ...func(*route53.Options)) (*route53.ListHostedZonesByNameOutput, error)
+	ListTagsForResource(ctx context.Context, input *route53.ListTagsForResourceInput, opts ...func(*route53.Options)) (*route53.ListTagsForResourceOutput, error)
+	ListResourceRecordSets(ctx context.Context, input *route53.ListResourceRecordSetsInput, opts ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error)
 }
 
-func NewAWSRoute53Connection(session *session.Session) *AWSRoute53Connection {
+// AWSRoute53Connection wraps the Route53 client for DNS operations.
+type AWSRoute53Connection struct {
+	client route53API
+}
+
+// NewAWSRoute53Connection creates a new Route53 client from a v2 AWS config.
+func NewAWSRoute53Connection(cfg aws.Config) *AWSRoute53Connection {
 	return &AWSRoute53Connection{
-		client: route53.New(session),
+		client: route53.NewFromConfig(cfg),
 	}
 }
 
 // WithRoute53 configures an AWSConnection instance for including the Route53 client
 func WithRoute53() AWSConnectionOption {
 	return func(conn *AWSConnection) {
-		conn.Route53 = NewAWSRoute53Connection(conn.awsSession)
+		conn.Route53 = NewAWSRoute53Connection(conn.awsCfg)
 	}
-}
-
-type HostedZone struct {
-	Zone *route53.HostedZone
-	Tags []*route53.Tag
 }
 
 // GetZonesWithTags retrieves all hosted zones and their associated tags from AWS Route53
-func (c *AWSRoute53Connection) GetZonesWithTags() ([]HostedZone, error) {
-	// Route 53 returns up to 100 items in each response.
-	// If you have a lot of hosted zones, use the MaxItems parameter to list them in groups of up to 100.
-	// https://pkg.go.dev/github.com/aws/aws-sdk-go/service/route53#Route53.ListHostedZonesByName
-	input := route53.ListHostedZonesByNameInput{}
-	result, err := c.client.ListHostedZonesByName(&input)
+func (c *AWSRoute53Connection) GetZonesWithTags(ctx context.Context) ([]DNSHostedZone, error) {
+	result, err := c.client.ListHostedZonesByName(ctx, &route53.ListHostedZonesByNameInput{})
 	if err != nil {
 		return nil, err
 	}
-	zonesWithTags := make([]HostedZone, 0, len(result.HostedZones))
+
+	zonesWithTags := make([]DNSHostedZone, 0, len(result.HostedZones))
 
 	for _, zone := range result.HostedZones {
-		hztype := route53.TagResourceTypeHostedzone
-		tags, err := c.client.ListTagsForResource(&route53.ListTagsForResourceInput{
-			ResourceType: &hztype,
-			ResourceId:   aws.String(*zone.Id),
+		tags, err := c.client.ListTagsForResource(ctx, &route53.ListTagsForResourceInput{
+			ResourceType: r53types.TagResourceTypeHostedzone,
+			ResourceId:   zone.Id,
 		})
 		if err != nil || tags.ResourceTagSet == nil {
 			continue
 		}
-		zonesWithTags = append(zonesWithTags, HostedZone{
-			Zone: zone,
-			Tags: tags.ResourceTagSet.Tags,
-		})
 
+		dnsZone := DNSHostedZone{
+			ID:   aws.ToString(zone.Id),
+			Name: aws.ToString(zone.Name),
+			Tags: make([]DNSHostedZoneTag, 0, len(tags.ResourceTagSet.Tags)),
+		}
+		for _, tag := range tags.ResourceTagSet.Tags {
+			dnsZone.Tags = append(dnsZone.Tags, DNSHostedZoneTag{
+				Key:   aws.ToString(tag.Key),
+				Value: aws.ToString(tag.Value),
+			})
+		}
+
+		zonesWithTags = append(zonesWithTags, dnsZone)
 	}
+
 	return zonesWithTags, nil
 }
 
-// ZoneBelongsToCluster returns true or false if the hosted zone is associated to a cluster Ingress (routers)
-func (c *AWSRoute53Connection) ZoneBelongsToCluster(cluster *inventory.Cluster, zoneWithTags HostedZone) bool {
+// ZoneBelongsToCluster returns true if the hosted zone is associated to a cluster Ingress (routers)
+func (c *AWSRoute53Connection) ZoneBelongsToCluster(cluster *inventory.Cluster, zoneWithTags DNSHostedZone) bool {
 	for _, tag := range zoneWithTags.Tags {
-		if strings.Contains(*(tag.Key), cluster.ClusterName) {
+		if strings.Contains(tag.Key, cluster.ClusterName) {
 			return true
 		}
 	}
@@ -73,22 +83,22 @@ func (c *AWSRoute53Connection) ZoneBelongsToCluster(cluster *inventory.Cluster, 
 }
 
 // GetHostedZoneRecords returns every record of a given HostedZone
-func (c *AWSRoute53Connection) GetHostedZoneRecords(hostedZoneID string) ([]*route53.ResourceRecordSet, error) {
-	// Define input for ListResourceRecordSets
-	input := &route53.ListResourceRecordSetsInput{
+func (c *AWSRoute53Connection) GetHostedZoneRecords(ctx context.Context, hostedZoneID string) ([]DNSRecordSet, error) {
+	paginator := route53.NewListResourceRecordSetsPaginator(c.client, &route53.ListResourceRecordSetsInput{
 		HostedZoneId: aws.String(hostedZoneID),
-	}
+	})
 
-	var records []*route53.ResourceRecordSet
-
-	// API Call for getting DNS records
-	err := c.client.ListResourceRecordSetsPages(input,
-		func(page *route53.ListResourceRecordSetsOutput, lastPage bool) bool {
-			records = append(records, page.ResourceRecordSets...)
-			return !lastPage // Continue if there are more record pages
-		})
-	if err != nil {
-		return nil, fmt.Errorf("error getting the DNS registries: %w", err)
+	var records []DNSRecordSet
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error getting the DNS registries: %w", err)
+		}
+		for _, rr := range page.ResourceRecordSets {
+			records = append(records, DNSRecordSet{
+				Name: aws.ToString(rr.Name),
+			})
+		}
 	}
 
 	return records, nil

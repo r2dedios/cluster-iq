@@ -1,6 +1,7 @@
 package stocker
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -20,7 +21,7 @@ type AWSStocker struct {
 // NewAWSStocker create and returns a pointer to a new AWSStocker instance
 func NewAWSStocker(account *inventory.Account, skipNoOpenShiftInstances bool, logger *zap.Logger) (*AWSStocker, error) {
 	// Leaving the region empty forces to the AWSConnection to use the default region until a new one is configured
-	conn, err := cp.NewAWSConnection(account.User(), account.Password(), "", cp.WithEC2(), cp.WithRoute53(), cp.WithSTS())
+	conn, err := cp.NewAWSConnection(context.Background(), account.User(), account.Password(), "", cp.WithEC2(), cp.WithRoute53(), cp.WithSTS())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS connection: %w", err)
 	}
@@ -38,12 +39,12 @@ func NewAWSStocker(account *inventory.Account, skipNoOpenShiftInstances bool, lo
 
 // Connect Initialices the AWS API and CostExplorer sessions and clients
 func (s *AWSStocker) Connect() error {
-	return s.conn.Connect()
+	return s.conn.Connect(context.Background())
 }
 
 // MakeStock Implements the interface Stocker for triggering the entire process of making stock about a AWS account
 func (s *AWSStocker) MakeStock() error {
-	regions, err := s.conn.EC2.GetRegionsList()
+	regions, err := s.conn.EC2.GetRegionsList(context.Background())
 	if err != nil {
 		return err
 	}

@@ -1,13 +1,12 @@
 package stocker
 
 import (
+	"context"
 	"strconv"
 	"time"
 
 	cp "github.com/RHEcosystemAppEng/cluster-iq/internal/cloud_providers/aws"
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/inventory"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/costexplorer"
 	"go.uber.org/zap"
 )
 
@@ -30,7 +29,7 @@ func NewAWSBillingStocker(account *inventory.Account, logger *zap.Logger, instan
 		return nil
 	}
 
-	conn, err := cp.NewAWSConnection(account.User(), account.Password(), "", cp.WithCostExplorer())
+	conn, err := cp.NewAWSConnection(context.Background(), account.User(), account.Password(), "", cp.WithCostExplorer())
 	if err != nil {
 		logger.Error("Error creating a new AWSBillingStocker", zap.String("account", account.AccountName), zap.Error(err))
 		return nil
@@ -93,24 +92,13 @@ func (s *AWSBillingStocker) getInstanceExpenses(instance *inventory.Instance) er
 		zap.String("end_date", endDate),
 	)
 
-	// Prepare the AWS Query input
-	input := &costexplorer.GetCostAndUsageWithResourcesInput{
-		TimePeriod: &costexplorer.DateInterval{
-			Start: aws.String(startDate),
-			End:   aws.String(endDate),
-		},
-		Granularity: aws.String("DAILY"),
-		Filter: &costexplorer.Expression{
-			Dimensions: &costexplorer.DimensionValues{
-				Key:    aws.String("RESOURCE_ID"),
-				Values: []*string{aws.String(instance.InstanceID)},
-			},
-		},
-		Metrics: []*string{aws.String("UnblendedCost")},
+	input := &cp.CostAndUsageInput{
+		StartDate:  startDate,
+		EndDate:    endDate,
+		InstanceID: instance.InstanceID,
 	}
 
-	// Fetch the Costs from AWS API
-	result, err := s.conn.CostExplorer.GetCostAndUsageWithResources(input)
+	result, err := s.conn.CostExplorer.GetCostAndUsageWithResources(context.Background(), input)
 	if err != nil {
 		s.logger.Error("Error getting cost and usage with resources",
 			zap.String("account", s.Account.AccountName),
@@ -119,45 +107,39 @@ func (s *AWSBillingStocker) getInstanceExpenses(instance *inventory.Instance) er
 		return err
 	}
 
-	// for each cost add it to the instance Expenses
-	for _, resultByTime := range result.ResultsByTime {
-		if resultByTime.Total != nil {
-			if singleCost, ok := resultByTime.Total["UnblendedCost"]; ok {
-				// Getting Expense amount as float64
-				amount, err := strconv.ParseFloat(*singleCost.Amount, 64)
-				if err != nil {
-					s.logger.Error("Error parsing cost amount",
-						zap.String("account", s.Account.AccountName),
-						zap.Float64("amount", amount),
-						zap.Error(err))
-					return err
-				}
+	for _, costResult := range result.Results {
+		amount, err := strconv.ParseFloat(costResult.Amount, 64)
+		if err != nil {
+			s.logger.Error("Error parsing cost amount",
+				zap.String("account", s.Account.AccountName),
+				zap.Float64("amount", amount),
+				zap.Error(err))
+			return err
+		}
 
-				// AWS Cost Explorer DateInterval uses pattern (\d{4}-\d{2}-\d{2})(T\d{2}:\d{2}:\d{2}Z)?
-				// DAILY granularity typically returns "YYYY-MM-DD" but may include "T00:00:00Z".
-				expenseDate, err := time.Parse(time.RFC3339, *resultByTime.TimePeriod.Start)
-				if err != nil {
-					expenseDate, err = time.Parse("2006-01-02", *resultByTime.TimePeriod.Start)
-				}
-				if err != nil {
-					s.logger.Error("Error parsing start date",
-						zap.String("account", s.Account.AccountName),
-						zap.String("start", *resultByTime.TimePeriod.Start),
-						zap.Error(err))
-					return err
-				}
+		// AWS Cost Explorer DateInterval uses pattern (\d{4}-\d{2}-\d{2})(T\d{2}:\d{2}:\d{2}Z)?
+		// DAILY granularity typically returns "YYYY-MM-DD" but may include "T00:00:00Z".
+		expenseDate, err := time.Parse(time.RFC3339, costResult.StartDate)
+		if err != nil {
+			expenseDate, err = time.Parse("2006-01-02", costResult.StartDate)
+		}
+		if err != nil {
+			s.logger.Error("Error parsing start date",
+				zap.String("account", s.Account.AccountName),
+				zap.String("start", costResult.StartDate),
+				zap.Error(err))
+			return err
+		}
 
-				// NewExpense always returns a valid pointer; negative amounts are clamped to 0.0
-				// by the constructor. AWS Cost Explorer does not return negative costs for instances.
-				expense := inventory.NewExpense(instance.InstanceID, amount, expenseDate)
-				if err := instance.AddExpense(expense); err != nil {
-					s.logger.Error("error when adding an expense to an instance",
-						zap.String("instance_id", instance.InstanceID),
-						zap.Error(err),
-					)
-					continue
-				}
-			}
+		// NewExpense always returns a valid pointer; negative amounts are clamped to 0.0
+		// by the constructor. AWS Cost Explorer does not return negative costs for instances.
+		expense := inventory.NewExpense(instance.InstanceID, amount, expenseDate)
+		if err := instance.AddExpense(expense); err != nil {
+			s.logger.Error("error when adding an expense to an instance",
+				zap.String("instance_id", instance.InstanceID),
+				zap.Error(err),
+			)
+			continue
 		}
 	}
 

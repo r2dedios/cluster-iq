@@ -1,12 +1,12 @@
 package cloudprovider
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 )
 
 const (
@@ -25,90 +25,77 @@ const (
 // * STS (SecurityTokenService)
 // * CostExplorer (billing data)
 type AWSConnection struct {
-	credentials  *credentials.Credentials
-	awsConfig    *aws.Config
-	awsSession   *session.Session
-	EC2          *AWSEC2Connection
-	Route53      *AWSRoute53Connection
-	STS          *AWSSTSConnection
-	CostExplorer *AWSCostExplorerConnection
+	awsCfg       aws.Config
+	EC2          EC2Client
+	Route53      Route53Client
+	STS          STSClient
+	CostExplorer CostExplorerClient
 	accountID    string
 	user         string
 	password     string
 	region       string
+	unmanaged    bool
 }
 
 // AWSConnectionOption defines the options for creating different sets of AWS services connections
 type AWSConnectionOption func(*AWSConnection)
 
 // NewAWSConnection creates a connection with AWS APIs. Based on the AWSConnectionOptions, it will create different clients for every available service
-func NewAWSConnection(user string, password string, region string, opts ...AWSConnectionOption) (*AWSConnection, error) {
-	var token string
-
-	// If there's no region specified, it will take the default one.
+func NewAWSConnection(ctx context.Context, user string, password string, region string, opts ...AWSConnectionOption) (*AWSConnection, error) {
 	if region == "" {
 		region = DefaultAWSRegion
 	}
 
-	// Third argument (token) it's not used. For more info check docs: https://pkg.go.dev/github.com/aws/aws-sdk-go/aws/credentials#NewStaticCredentials
-	creds := credentials.NewStaticCredentials(user, password, token)
-
-	// AccountID is empty by default. It will be configured automatically if the developer includes the STS service option
 	conn := &AWSConnection{
-		credentials: creds,
-		user:        user,
-		password:    password,
-		region:      region,
+		user:     user,
+		password: password,
+		region:   region,
 	}
 
-	// creating AWSConfig object
-	if err := conn.newAWSConfig(); err != nil {
+	if err := conn.loadConfig(ctx); err != nil {
 		return nil, err
 	}
 
-	// creating AWSSession
-	if err := conn.newAWSession(); err != nil {
-		return nil, err
-	}
-
-	// Apply options for every service to the AWSConnection object
 	for _, opt := range opts {
 		opt(conn)
 	}
 
 	if conn.STS != nil {
-		_, err := conn.STS.client.GetCallerIdentity(&sts.GetCallerIdentityInput{})
-		if err != nil {
-			return nil, fmt.Errorf("credential validation failed: %w", err)
+		accountID := conn.STS.GetAWSAccountID(ctx)
+		if accountID == unknownAccountIDCode {
+			return nil, fmt.Errorf("credential validation failed: could not retrieve AWS account ID")
 		}
-		conn.accountID = conn.STS.getAWSAccountID()
+		conn.accountID = accountID
 	}
 
 	return conn, nil
 }
 
-// newAWSConfig creates a new AWSConfig object instance to define the AWSSession config
-func (conn *AWSConnection) newAWSConfig() error {
-	// Preparing AWSConfig for new AWS API Session
-	conn.awsConfig = aws.NewConfig().WithCredentials(conn.credentials).WithRegion(conn.region)
-	if conn.awsConfig == nil {
-		return fmt.Errorf("cannot obtain AWS config for Account: %s", conn.accountID)
+// loadConfig creates the AWS config with static credentials and the configured region
+func (conn *AWSConnection) loadConfig(ctx context.Context) error {
+	cfg, err := awsconfig.LoadDefaultConfig(ctx,
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(conn.user, conn.password, "")),
+		awsconfig.WithRegion(conn.region),
+	)
+	if err != nil {
+		return fmt.Errorf("cannot load AWS config for Account: %w", err)
 	}
 
+	conn.awsCfg = cfg
 	return nil
 }
 
-// newAWSession creates a new AWSSession
-func (conn *AWSConnection) newAWSession() error {
-	var err error
-
-	// Creating Session for AWS API
-	conn.awsSession, err = session.NewSession(conn.awsConfig)
-	if err != nil {
-		return err
+// NewAWSConnectionWithClients creates an AWSConnection with pre-injected clients,
+// bypassing AWS credential loading. SetRegion and Connect become no-ops on the
+// returned connection, so injected clients are never replaced.
+func NewAWSConnectionWithClients(ec2 EC2Client, route53 Route53Client, costExplorer CostExplorerClient, region string) *AWSConnection {
+	return &AWSConnection{
+		EC2:          ec2,
+		Route53:      route53,
+		CostExplorer: costExplorer,
+		region:       region,
+		unmanaged:    true,
 	}
-
-	return nil
 }
 
 // GetRegion returns the current region configured for the AWS Connection
@@ -117,9 +104,12 @@ func (conn AWSConnection) GetRegion() string {
 }
 
 // SetRegion configures a new Region for the AWS Connection and refreshes the service clients for the new target region
-func (conn *AWSConnection) SetRegion(region string) error {
+func (conn *AWSConnection) SetRegion(ctx context.Context, region string) error {
 	conn.region = region
-	return conn.Connect()
+	if conn.unmanaged {
+		return nil
+	}
+	return conn.Connect(ctx)
 }
 
 // GetAccountID returns the accountID obtained from AWS for the account on the current AWSConnection
@@ -130,22 +120,15 @@ func (conn *AWSConnection) GetAccountID() string {
 // Connect establish or refresh the AWS service clients for the AWSConnection
 // object. This is needed because some clients needs to be re-created when
 // switching to a different region
-func (conn *AWSConnection) Connect() error {
-	var err error
+func (conn *AWSConnection) Connect(ctx context.Context) error {
+	if conn.unmanaged {
+		return nil
+	}
 
-	// Creating new AWS Config
-	err = conn.newAWSConfig()
-	if err != nil {
+	if err := conn.loadConfig(ctx); err != nil {
 		return err
 	}
 
-	// Creating new AWS Session
-	err = conn.newAWSession()
-	if err != nil {
-		return err
-	}
-
-	// Refreshing service client objects for the AWSConnection if it's defined
 	if conn.EC2 != nil {
 		WithEC2()(conn)
 	}
