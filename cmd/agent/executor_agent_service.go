@@ -246,6 +246,15 @@ func (e *ExecutorAgentService) processAction(action actions.Action) {
 		return
 	}
 
+	if action.GetActionOperation() == actions.DeleteCluster && !e.cfg.DestructiveActionsEnable {
+		e.logger.Warn("DeleteCluster blocked: CIQ_DESTRUCTIVE_ACTIONS_ENABLE is false",
+			zap.String("action_id", action.GetID()),
+			zap.String("cluster_id", target.ClusterID))
+		e.setActionStatus(action, actions.StatusFailed)
+		tracker.Failed()
+		return
+	}
+
 	// Mark as running
 	if !e.setActionStatus(action, actions.StatusRunning) {
 		tracker.Failed()

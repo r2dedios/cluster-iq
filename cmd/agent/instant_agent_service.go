@@ -186,3 +186,49 @@ func (i *InstantAgentService) PowerOffCluster(ctx context.Context, req *pb.Power
 		Message: fmt.Sprintf(PowerOffClusterSuccessfully, req.ClusterId, req.AccountId, len(req.InstancesIdList)),
 	}, nil
 }
+
+// DeleteCluster handles a gRPC request to delete a self-managed cluster.
+func (i *InstantAgentService) DeleteCluster(ctx context.Context, req *pb.DeleteClusterRequest) (*pb.DeleteClusterResponse, error) {
+	i.logger.Warn("Deleting Cluster",
+		zap.String("account_id", req.AccountId),
+		zap.String("region", req.Region),
+		zap.String("cluster_id", req.ClusterId),
+		zap.String("cluster_name", req.ClusterName),
+		zap.String("infra_id", req.InfraId),
+		zap.String("cluster_type", req.ClusterType),
+		zap.String("requester", req.Requester),
+	)
+
+	target := actions.NewActionTarget(
+		req.AccountId,
+		req.Region,
+		req.ClusterId,
+		nil,
+	)
+	target.ClusterName = req.ClusterName
+	target.InfraID = req.InfraId
+	target.OpenshiftClusterID = req.OpenshiftClusterId
+	target.ClusterType = req.ClusterType
+
+	action := actions.NewDeleteClusterAction(
+		*target,
+		req.Requester,
+		&req.Description,
+	)
+
+	actionID, err := i.actionRepo.CreateAction(ctx, action)
+	if err != nil {
+		return &pb.DeleteClusterResponse{
+			Error:   1,
+			Message: fmt.Sprintf(DeleteClusterError, req.ClusterId, req.AccountId),
+		}, nil
+	}
+	action.ID = strconv.FormatInt(actionID, 10)
+
+	i.actionsChannel <- action
+
+	return &pb.DeleteClusterResponse{
+		Error:   0,
+		Message: fmt.Sprintf(DeleteClusterSuccessfully, req.ClusterId, req.AccountId),
+	}, nil
+}

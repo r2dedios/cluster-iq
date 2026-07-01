@@ -16,6 +16,10 @@ const (
 	PowerOnClusterSuccessfully = "Power On for Cluster: %s(Acc: %s; Instances: %d) Successful"
 	// PowerOnClusterError defines the error message format for powering on a cluster.
 	PowerOnClusterError = "Power On for Cluster: %s(Acc: %s; Instances: %d) Failed"
+	// DeleteClusterSuccessfully defines the success message format for deleting a cluster.
+	DeleteClusterSuccessfully = "Delete Cluster: %s(Acc: %s) Accepted"
+	// DeleteClusterError defines the error message format for deleting a cluster.
+	DeleteClusterError = "Delete Cluster: %s(Acc: %s) Failed"
 )
 
 // AgentService represents the common-basic structure and variables for every AgentService on the ClusterIQ Agent

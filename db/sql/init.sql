@@ -28,7 +28,8 @@ CREATE TYPE RESOURCE_TYPE AS ENUM (
 CREATE TYPE ACTION_OPERATION AS ENUM (
   'PowerOn',
   'PowerOff',
-  'Scan'
+  'Scan',
+  'DeleteCluster'
 );
 
 -- Supported values of action types

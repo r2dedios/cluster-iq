@@ -13,6 +13,9 @@ const (
 
 	// Scan represents an action to scan cloud accounts for resource discovery.
 	Scan ActionOperation = "Scan"
+
+	// DeleteCluster represents an action to delete a self-managed cluster and its cloud resources.
+	DeleteCluster ActionOperation = "DeleteCluster"
 )
 
 func NewPowerOnClusterAction(target ActionTarget, requester string, description *string) *InstantAction {
@@ -21,4 +24,8 @@ func NewPowerOnClusterAction(target ActionTarget, requester string, description 
 
 func NewPowerOffClusterAction(target ActionTarget, requester string, description *string) *InstantAction {
 	return NewInstantAction(PowerOff, target, StatusPending, requester, description, true)
+}
+
+func NewDeleteClusterAction(target ActionTarget, requester string, description *string) *InstantAction {
+	return NewInstantAction(DeleteCluster, target, StatusPending, requester, description, true)
 }

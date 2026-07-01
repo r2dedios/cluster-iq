@@ -64,6 +64,8 @@ func (a APIGRPCClient) ProcessInstantAction(ctx context.Context, action *actions
 		return a.PowerOffCluster(ctx, action)
 	case actions.PowerOn:
 		return a.PowerOnCluster(ctx, action)
+	case actions.DeleteCluster:
+		return a.DeleteCluster(ctx, action)
 	case actions.Scan:
 		return fmt.Errorf("scan operations are handled by the scanner service, not the agent")
 	default:
@@ -142,5 +144,35 @@ func (a APIGRPCClient) PowerOnCluster(ctx context.Context, action *actions.Insta
 		return err
 	}
 	a.logger.Info("Response from PowerOnCluster", zap.String("response", resp.Message))
+	return nil
+}
+
+// DeleteCluster sends a gRPC request to delete a self-managed cluster.
+func (a APIGRPCClient) DeleteCluster(ctx context.Context, action *actions.InstantAction) error {
+	rpcRequest := &pb.DeleteClusterRequest{
+		AccountId:          action.GetTarget().AccountID,
+		Region:             action.GetTarget().Region,
+		ClusterId:          action.GetTarget().ClusterID,
+		ClusterName:        action.GetTarget().ClusterName,
+		InfraId:            action.GetTarget().InfraID,
+		OpenshiftClusterId: action.GetTarget().OpenshiftClusterID,
+		ClusterType:        action.GetTarget().ClusterType,
+		Requester:          action.GetRequester(),
+		Description:        *action.GetDescription(),
+	}
+
+	a.logger.Info("Deleting Cluster",
+		zap.String("account_id", rpcRequest.AccountId),
+		zap.String("cluster_id", rpcRequest.ClusterId),
+		zap.String("cluster_name", rpcRequest.ClusterName),
+		zap.String("infra_id", rpcRequest.InfraId),
+		zap.String("region", rpcRequest.Region),
+	)
+
+	resp, err := a.Client.DeleteCluster(ctx, rpcRequest)
+	if err != nil {
+		return err
+	}
+	a.logger.Info("Response from DeleteCluster", zap.String("response", resp.Message))
 	return nil
 }

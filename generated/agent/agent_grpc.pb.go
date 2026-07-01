@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion8
 const (
 	AgentService_PowerOnCluster_FullMethodName  = "/agent.AgentService/PowerOnCluster"
 	AgentService_PowerOffCluster_FullMethodName = "/agent.AgentService/PowerOffCluster"
+	AgentService_DeleteCluster_FullMethodName   = "/agent.AgentService/DeleteCluster"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -29,6 +30,7 @@ const (
 type AgentServiceClient interface {
 	PowerOnCluster(ctx context.Context, in *PowerOnClusterRequest, opts ...grpc.CallOption) (*PowerOnClusterResponse, error)
 	PowerOffCluster(ctx context.Context, in *PowerOffClusterRequest, opts ...grpc.CallOption) (*PowerOffClusterResponse, error)
+	DeleteCluster(ctx context.Context, in *DeleteClusterRequest, opts ...grpc.CallOption) (*DeleteClusterResponse, error)
 }
 
 type agentServiceClient struct {
@@ -59,12 +61,23 @@ func (c *agentServiceClient) PowerOffCluster(ctx context.Context, in *PowerOffCl
 	return out, nil
 }
 
+func (c *agentServiceClient) DeleteCluster(ctx context.Context, in *DeleteClusterRequest, opts ...grpc.CallOption) (*DeleteClusterResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteClusterResponse)
+	err := c.cc.Invoke(ctx, AgentService_DeleteCluster_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility
 type AgentServiceServer interface {
 	PowerOnCluster(context.Context, *PowerOnClusterRequest) (*PowerOnClusterResponse, error)
 	PowerOffCluster(context.Context, *PowerOffClusterRequest) (*PowerOffClusterResponse, error)
+	DeleteCluster(context.Context, *DeleteClusterRequest) (*DeleteClusterResponse, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -77,6 +90,9 @@ func (UnimplementedAgentServiceServer) PowerOnCluster(context.Context, *PowerOnC
 }
 func (UnimplementedAgentServiceServer) PowerOffCluster(context.Context, *PowerOffClusterRequest) (*PowerOffClusterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PowerOffCluster not implemented")
+}
+func (UnimplementedAgentServiceServer) DeleteCluster(context.Context, *DeleteClusterRequest) (*DeleteClusterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteCluster not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 
@@ -127,6 +143,24 @@ func _AgentService_PowerOffCluster_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentService_DeleteCluster_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteClusterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).DeleteCluster(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_DeleteCluster_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).DeleteCluster(ctx, req.(*DeleteClusterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -141,6 +175,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PowerOffCluster",
 			Handler:    _AgentService_PowerOffCluster_Handler,
+		},
+		{
+			MethodName: "DeleteCluster",
+			Handler:    _AgentService_DeleteCluster_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

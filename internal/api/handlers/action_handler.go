@@ -167,6 +167,12 @@ func (h *ActionHandler) Create(c *gin.Context) {
 
 	if err := h.service.Create(c.Request.Context(), *actions); err != nil {
 		h.logger.Error("error creating actions", zap.Error(err))
+		if errors.Is(err, services.ErrInvalidAction) {
+			c.JSON(http.StatusBadRequest, responsetypes.GenericErrorResponse{
+				Message: err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, responsetypes.GenericErrorResponse{
 			Message: "Failed to create actions: " + err.Error(),
 		})

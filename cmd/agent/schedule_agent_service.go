@@ -297,12 +297,22 @@ func (a *ScheduleAgentService) dispatchActionLocked(action actions.Action) {
 			a.mutex.Unlock()
 		}()
 	case *actions.ScheduledAction:
+		if action.GetActionOperation() == actions.DeleteCluster {
+			a.logger.Error("DeleteCluster is not allowed as a scheduled action",
+				zap.String("action_id", action.GetID()))
+			return
+		}
 		if !exists {
 			a.scheduleNewScheduledAction(t)
 		} else {
 			a.rescheduleScheduledAction(t)
 		}
 	case *actions.CronAction:
+		if action.GetActionOperation() == actions.DeleteCluster {
+			a.logger.Error("DeleteCluster is not allowed as a cron action",
+				zap.String("action_id", action.GetID()))
+			return
+		}
 		if !exists {
 			a.scheduleNewCronAction(t)
 		} else {

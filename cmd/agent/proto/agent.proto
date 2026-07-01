@@ -8,6 +8,7 @@ option go_package = "./agent";
 service AgentService {
   rpc PowerOnCluster (PowerOnClusterRequest) returns (PowerOnClusterResponse);
   rpc PowerOffCluster (PowerOffClusterRequest) returns (PowerOffClusterResponse);
+  rpc DeleteCluster (DeleteClusterRequest) returns (DeleteClusterResponse);
 }
 
 // Message for requesting power on a cluster
@@ -40,6 +41,27 @@ message PowerOffClusterRequest {
 
 // Message for answering to PowerOffClusterRequests
 message PowerOffClusterResponse {
+  // if error != 0, there was an error during the action. If error == 0, the request was successfully completed
+  int32 error = 1;
+  // message with additional info
+  string message = 2;
+}
+
+// Message for requesting deletion of a cluster
+message DeleteClusterRequest {
+  string account_id = 1;
+  string region = 2;
+  string cluster_id = 3;
+  string cluster_name = 4;
+  string infra_id = 5;
+  string openshift_cluster_id = 6;
+  string cluster_type = 7;
+  string requester = 8;
+  string description = 9;
+}
+
+// Message for answering to DeleteClusterRequests
+message DeleteClusterResponse {
   // if error != 0, there was an error during the action. If error == 0, the request was successfully completed
   int32 error = 1;
   // message with additional info

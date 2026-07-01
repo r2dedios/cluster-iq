@@ -30,6 +30,7 @@ func testLoadAgentConfig_OK(t *testing.T) {
 	assert.Equal(t, "https://api.clusteriq.local", cfg.Eascfg.APIURL)
 	assert.Equal(t, "postgres://user:pass@db:5432/ciq", cfg.Eascfg.DBURL)
 	assert.Equal(t, "./test-file", cfg.Eascfg.Credentials.CredentialsFile)
+	assert.False(t, cfg.Eascfg.DestructiveActionsEnable)
 
 	// ScheduleAgentServiceConfig
 	assert.Equal(t, "https://api.clusteriq.local", cfg.Sascfg.APIURL)
@@ -62,4 +63,5 @@ func clearAgentEnv() {
 	_ = os.Unsetenv("CIQ_AGENT_INSTANT_SERVICE_LISTEN_URL")
 	_ = os.Unsetenv("CIQ_LOG_LEVEL")
 	_ = os.Unsetenv("CIQ_CREDS_FILE")
+	_ = os.Unsetenv("CIQ_DESTRUCTIVE_ACTIONS_ENABLE")
 }

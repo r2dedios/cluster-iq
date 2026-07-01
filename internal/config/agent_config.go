@@ -12,6 +12,8 @@ type ExecutorAgentServiceConfig struct {
 	DBURL  string `env:"CIQ_DB_URL,required"`
 	// ScannerURL refers to the Scanner gRPC endpoint
 	ScannerURL string `env:"CIQ_SCANNER_URL" envDefault:"scanner:50052"`
+	// DestructiveActionsEnable controls whether destructive operations (e.g. DeleteCluster) are allowed
+	DestructiveActionsEnable bool `env:"CIQ_DESTRUCTIVE_ACTIONS_ENABLE" envDefault:"false"`
 	// Credentials for accessing the cloud providers accounts
 	Credentials CloudCredentialsConfig
 }

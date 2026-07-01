@@ -23,6 +23,18 @@ type ActionTarget struct {
 
 	// TargetAccountIDs lists account IDs for scan-type actions.
 	TargetAccountIDs []string `db:"target_account_ids"`
+
+	// ClusterName is the human-readable cluster name (e.g., "my-cluster").
+	ClusterName string `db:"cluster_name"`
+
+	// InfraID is the full infrastructure ID (e.g., "my-cluster-abc12").
+	InfraID string `db:"infra_id"`
+
+	// OpenshiftClusterID is the OpenShift UUID for the cluster (may be empty).
+	OpenshiftClusterID string `db:"openshift_cluster_id"`
+
+	// ClusterType indicates the cluster type ("SelfManaged", "Rosa", "Osd").
+	ClusterType string `db:"cluster_type"`
 }
 
 // NewActionTarget creates and returns a new instance of ActionTarget.
@@ -74,4 +86,24 @@ func (at *ActionTarget) GetClusterID() string {
 // - A slice of strings containing the instance IDs.
 func (at *ActionTarget) GetInstances() []string {
 	return at.Instances
+}
+
+// GetClusterName returns the human-readable cluster name.
+func (at *ActionTarget) GetClusterName() string {
+	return at.ClusterName
+}
+
+// GetInfraID returns the full infrastructure ID.
+func (at *ActionTarget) GetInfraID() string {
+	return at.InfraID
+}
+
+// GetOpenshiftClusterID returns the OpenShift UUID for the cluster.
+func (at *ActionTarget) GetOpenshiftClusterID() string {
+	return at.OpenshiftClusterID
+}
+
+// GetClusterType returns the cluster type string.
+func (at *ActionTarget) GetClusterType() string {
+	return at.ClusterType
 }

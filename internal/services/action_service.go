@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/actions"
@@ -9,6 +10,9 @@ import (
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/models/db"
 	"github.com/RHEcosystemAppEng/cluster-iq/internal/repositories"
 )
+
+// ErrInvalidAction indicates that an action request violates business rules.
+var ErrInvalidAction = errors.New("invalid action")
 
 // ActionService defines the interface for action-related business logic.
 type ActionService interface {
@@ -50,6 +54,11 @@ func (s *actionServiceImpl) Get(ctx context.Context, actionID string) (db.Action
 
 // Create creates new scheduled actions.
 func (s *actionServiceImpl) Create(ctx context.Context, newActions []actions.Action) error {
+	for _, a := range newActions {
+		if a.GetActionOperation() == actions.DeleteCluster && a.GetType() != actions.InstantActionType {
+			return fmt.Errorf("%w: DeleteCluster can only be created as an instant action", ErrInvalidAction)
+		}
+	}
 	if err := s.repo.Create(ctx, newActions); err != nil {
 		return fmt.Errorf("create actions: %w", err)
 	}
