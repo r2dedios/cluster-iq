@@ -172,6 +172,13 @@ export const ScheduleActionsTableToolbar: React.FunctionComponent<SchedulerTable
           >
             {ActionOperations.POWER_OFF}
           </MenuItem>
+          <MenuItem
+            hasCheckbox
+            isSelected={actionOperation?.includes(ActionOperations.DELETE_CLUSTER)}
+            itemId={ActionOperations.DELETE_CLUSTER}
+          >
+            Delete Cluster
+          </MenuItem>
         </MenuList>
       </MenuContent>
     </Menu>

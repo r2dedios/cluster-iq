@@ -19,6 +19,7 @@ export enum ActionOperations {
   POWER_ON = 'PowerOn',
   POWER_OFF = 'PowerOff',
   SCAN = 'Scan',
+  DELETE_CLUSTER = 'DeleteCluster',
 }
 
 export enum ActionTypes {
@@ -29,7 +30,7 @@ export enum ActionTypes {
 
 export interface BaseAction {
   type: 'instant_action' | 'scheduled_action' | 'cron_action';
-  operation: 'PowerOff' | 'PowerOn';
+  operation: 'PowerOff' | 'PowerOn' | 'DeleteCluster';
   target: {
     clusterID: string;
   };

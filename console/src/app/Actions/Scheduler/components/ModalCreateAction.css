@@ -1,0 +1,13 @@
+.pf-v6-theme-dark .modal-create-action .pf-v6-c-toggle-group__button {
+  --pf-v6-c-toggle-group__button--before--BorderColor: var(--pf-t--global--border--color--default);
+}
+
+.pf-v6-theme-dark .modal-create-action .pf-v6-c-toggle-group__button.pf-m-selected {
+  --pf-v6-c-toggle-group__button--m-selected--BackgroundColor: var(--pf-t--global--color--brand--default);
+  --pf-v6-c-toggle-group__button--m-selected--Color: var(--pf-t--global--text--color--on-brand--default);
+  --pf-v6-c-toggle-group__button--m-selected--before--BorderColor: var(--pf-t--global--color--brand--default);
+}
+
+.pf-v6-theme-dark .modal-create-action .pf-v6-c-menu-toggle {
+  --pf-v6-c-menu-toggle--BorderColor: var(--pf-t--global--border--color--default);
+}

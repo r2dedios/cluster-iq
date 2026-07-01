@@ -21,7 +21,11 @@ export const ClusterDetailsDropdown: React.FunctionComponent<ClusterDetailsDropd
   const onSelect = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
     const operation = value as ActionOperations;
 
-    if (operation === ActionOperations.POWER_ON || operation === ActionOperations.POWER_OFF) {
+    if (
+      operation === ActionOperations.POWER_ON ||
+      operation === ActionOperations.POWER_OFF ||
+      operation === ActionOperations.DELETE_CLUSTER
+    ) {
       setActionOperation(operation);
       setIsModalOpen(true);
     }
@@ -70,6 +74,9 @@ export const ClusterDetailsDropdown: React.FunctionComponent<ClusterDetailsDropd
           </DropdownItem>
           <DropdownItem value={ActionOperations.POWER_OFF} key="power-off">
             {ActionOperations.POWER_OFF}
+          </DropdownItem>
+          <DropdownItem value={ActionOperations.DELETE_CLUSTER} key="delete-cluster" isDanger>
+            Delete Cluster
           </DropdownItem>
         </DropdownList>
       </Dropdown>

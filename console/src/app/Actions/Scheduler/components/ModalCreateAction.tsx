@@ -25,6 +25,7 @@ import { debug } from '@app/utils/debugLogs';
 import { api, AccountResponseApi, ClusterResponseApi, ActionRequestApi } from '@api';
 import { useUser } from '@app/Contexts/UserContext';
 import cronValidate from 'cron-validate';
+import './ModalCreateAction.css';
 
 interface ModalCreateActionProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export const ModalCreateAction: React.FunctionComponent<ModalCreateActionProps> 
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const isScan = actionOperation === ActionOperations.SCAN;
+  const isDeleteCluster = actionOperation === ActionOperations.DELETE_CLUSTER;
 
   const isValidCronExpression = (expr: string): boolean => {
     if (!expr.trim()) return false;
@@ -185,6 +187,7 @@ export const ModalCreateAction: React.FunctionComponent<ModalCreateActionProps> 
     <Modal
       variant={ModalVariant.small}
       title="Create Action"
+      className="modal-create-action"
       isOpen={isOpen}
       onClose={onClose}
       actions={[
@@ -236,6 +239,12 @@ export const ModalCreateAction: React.FunctionComponent<ModalCreateActionProps> 
               isSelected={actionOperation === ActionOperations.POWER_OFF}
               onChange={(_e, selected) => selected && handleOperationChange(ActionOperations.POWER_OFF)}
             />
+            <ToggleGroupItem
+              text="Delete Cluster"
+              buttonId="action-delete-cluster"
+              isSelected={actionOperation === ActionOperations.DELETE_CLUSTER}
+              onChange={(_e, selected) => selected && handleOperationChange(ActionOperations.DELETE_CLUSTER)}
+            />
           </ToggleGroup>
         </FormGroup>
 
@@ -260,30 +269,32 @@ export const ModalCreateAction: React.FunctionComponent<ModalCreateActionProps> 
           />
         )}
 
-        {/* Execution time */}
-        <FormGroup
-          label="Execution"
-          fieldId="scheduled-action-type"
-          labelHelp={
-            <Popover
-              headerContent="Execution"
-              bodyContent="By default the action runs immediately. Check 'Schedule action' to run it at a specific time or on a recurring cron schedule."
-            >
-              <Button variant="plain" aria-label="Execution help" icon={<HelpIcon />} />
-            </Popover>
-          }
-        >
-          <Checkbox
-            id="scheduled-action-type"
-            name="scheduled-action-type"
-            label="Schedule action"
-            isChecked={showSchedule}
-            onChange={(_event, checked) => {
-              setShowSchedule(checked);
-              setActionType(checked ? ActionTypes.SCHEDULED_ACTION : ActionTypes.INSTANT_ACTION);
-            }}
-          />
-        </FormGroup>
+        {/* Execution time (hidden for DeleteCluster — instant only) */}
+        {!isDeleteCluster && (
+          <FormGroup
+            label="Execution"
+            fieldId="scheduled-action-type"
+            labelHelp={
+              <Popover
+                headerContent="Execution"
+                bodyContent="By default the action runs immediately. Check 'Schedule action' to run it at a specific time or on a recurring cron schedule."
+              >
+                <Button variant="plain" aria-label="Execution help" icon={<HelpIcon />} />
+              </Popover>
+            }
+          >
+            <Checkbox
+              id="scheduled-action-type"
+              name="scheduled-action-type"
+              label="Schedule action"
+              isChecked={showSchedule}
+              onChange={(_event, checked) => {
+                setShowSchedule(checked);
+                setActionType(checked ? ActionTypes.SCHEDULED_ACTION : ActionTypes.INSTANT_ACTION);
+              }}
+            />
+          </FormGroup>
+        )}
         {showSchedule && (
           <>
             <FormGroup role="radiogroup" fieldId="schedule-type">
